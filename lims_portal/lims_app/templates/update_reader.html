@@ -1,0 +1,25 @@
+{% extends "index.html" %}
+{% load static %}
+{% block title %}Update Reader{% endblock %}
+
+{% block main_content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="card p-4" style="width: 400px;">
+        <h3 class="text-center mb-3">Update Reader</h3>
+
+        <!-- Message (optional) -->
+        {% if form.errors %}
+            <p class="text-danger text-center">Please correct the errors below.</p>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}   
+            <div class="d-flex justify-content-between mt-3">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="{% url 'readers_tab' %}" class="btn btn-secondary">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
