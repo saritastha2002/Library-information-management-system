@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+{% extends "index.html" %}
+{% load static %}
+
+{% block main_content%}
+<main role="main">
+<div class="jumbotron">
+    <div class="container">
+        <img src="{% static 'lims_app/logo1.jpg' %}"  class="rounded float-start" alt="logo" height="200" style="margin-right: 20px">
+        <h1 class="display-4">Hello, Readers</h1>
+        <p>✨ “Welcome to the Library — a world of stories, knowledge and imagination, where every reader finds their book!”</p>
+        <p><button class="btn btn-primary btn-lg">Browse our collection ></button></p>
+
+    </div>
+</div>
+<div class="container">
+  <div class="container mt-5">
+  <div class="row g-4 text-center">
+    <!-- Why Reading -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow border-0">
+        <div class="card-body">
+          <h3>📚 Why reading is important?</h3>
+          <p class="card-text unified-text">Reading isn’t just learning — it’s adventure! Every page takes you somewhere new, 
+             helping you dream bigger, think sharper, and explore endless possibilities...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Benefits -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow border-0">
+        <div class="card-body">
+          <h3>✨ Key Benefits</h3>
+          <ul class="list-unstyled unified-text">
+            <li>📖 Knowledge</li>
+            <li>🧠 Focus</li>
+            <li>💡 Creativity</li>
+            <li>🔍 Critical Thinking</li>
+            <li>😊 Relaxation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thought -->
+    <div class="col-md-4">
+      <div class="card h-100 shadow border-0">
+        <div class="card-body">
+          <h3 class="card-titlevunified-title">💭 Thought for the day</h3>
+          <blockquote class="blockquote">
+            <p>"Peace does not mean to be in a place where there is no noise, trouble, or hard work. 
+               It means to be in the midst of those things and still be calm in your heart."</p>
+            <footer class="blockquote-footer">Hermann Hesse</footer>
+          </blockquote>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<hr>
+</div>
+</main>
+<footer class="container" style="text-align: center; padding: 10px 0;">
+    <p>© library 2025</p>
+</footer>
+{% endblock %}
