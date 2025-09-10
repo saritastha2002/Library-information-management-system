@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.db.models import Q 
 from django.contrib import messages
 from datetime import date,timedelta
+from django.core.paginator import Paginator
 
 def home(request):
     return render(request, "home.html",context={"current_tab" : "home"})
@@ -118,8 +119,13 @@ def book_list(request):
         )
     else:
         books = Book.objects.all()
+        
+    paginator = Paginator(books, 5)  # 5 books per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    return render(request, 'books.html', {'books': books, 'query': query})
+    return render(request, 'books.html', {'page_obj': page_obj, 'query': query})
+    
 
 def add_book(request):
     if request.method == 'POST':
@@ -184,8 +190,10 @@ def records_tab(request):
             records = records.filter(member_name__icontains=member_name)
         if due_date:
             records = records.filter(due_date=due_date)
-
-    return render(request, 'records.html', {'current_tab': 'records', 'form': form, 'records': records})
+    paginator = Paginator(records, 5)  # 5 records per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'records.html', {'current_tab': 'records', 'form': form, 'page_obj': page_obj})
 
 
 def add_borrowing(request):
@@ -232,7 +240,14 @@ def return_book(request, borrowing_id):
     return redirect('returns_tab')  
 
 def returns_tab(request):
-    records = Borrowing.objects.all()
-    return render(request, 'return_borrowing.html', {'records': records, 'current_tab': 'returns'})
+    records = Borrowing.objects.all().order_by('-borrowed_on')
+    paginator = Paginator(records, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'return_borrowing.html', {
+        'records': page_obj,
+        'current_tab': 'returns'
+    })
 
 
