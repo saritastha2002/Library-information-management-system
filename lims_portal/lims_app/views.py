@@ -246,8 +246,6 @@ def returns_tab(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'return_borrowing.html', {
-        'records': page_obj,
+        'page_obj': page_obj,
         'current_tab': 'returns'
     })
-
-

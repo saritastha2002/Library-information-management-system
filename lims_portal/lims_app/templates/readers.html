@@ -2,122 +2,114 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block main_content%}
+{% block main_content %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Readers</h2>
 
-<div class="container-fluid justify-content-center align-items-center" style="padding-top:10px; margin-top:10px; vertical-align:middle;">
-<div class="row justify-content-center align-middle" style="margin-top: 10px;height:60px;"> 
-    <div class="col-md-4 text-light" style="background:#4B088A">
-        <h4 style="margin-top:15px;">Register new reader</h4>
-    </div>
-    <div class="col-md-8">
-        
-    </div>
-
-</div>
-<div class="row">
-    <div class="col-md-4">
-        <div class="container" style="overflow-y:auto;height: 600px;background:#CEECF5">
-            <!-- Duplicate warning message -->
-            {% if duplicate_error %}
-            <div class="alert alert-danger alert-dismissible fade show mt-2" role="alert">
-                <strong><i class="fas fa-exclamation-triangle"></i> </strong> 
-                {{ duplicate_error }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endif %}
-            <form class="d-flex" action="/readers/add/" method="POST">
-                {% csrf_token %}
-                <table class="table" style="margin-top: 20px;">
-                    <tr>
-                        <td style="text-align: left;vertical-align:middle; padding-left: 15px;">Name :</td>
-                        <td><input type="text" class="form-control" name="reader_name"></td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;vertical-align:middle; padding-left: 15px;">Contact :</td>
-                        <td><input type="text" class="form-control" name="reader_contact"></td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;vertical-align:middle; padding-left: 15px;">Reference ID :</td>
-                        <td><input type="text" class="form-control" name="reader_ref_id"></td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: left;vertical-align:middle; padding-left: 15px;">Address :</td>
-                        <td><textarea  class="form-control" name="address"></textarea></td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" class="text-center"><button class="btn btn-primary" type="submit">Save</button></td>
-                    </tr>
-
-                </table>
-            </form>
-            <ul style="text-align: left; vertical-align:middle; padding-left:15px;">
-                <li><small>Readers should not register multiple times</small></li>
-                <li><small>Duplicate reader registration will be deactivated</small></li>
-                <li><small>Contact Information provided above must be contact and subject to verification</small></li>
-            </ul>
-
-        </div>
-
-    </div>
-    <div class="col-md-5">
-    <div class="d-flex flex-column"> <!-- flex column for vertical stacking -->
-        <!-- Search form -->
-        <form class="d-flex" role="search" action="/readers/" method="POST">
+    <!-- Top Bar: Search + Add Button -->
+    <div class="d-flex justify-content-between mb-3">
+        <form class="d-flex w-75" role="search" action="/readers/" method="POST">
             {% csrf_token %}
-            <input class="form-control me-2" style="width: 50%;" type="search" placeholder="Search readers" aria-label="Search" name="query" value="{{query}}" />
-            <button class="btn btn-outline-success" type="submit">Search</button>
+            <input class="form-control me-2" type="search" name="query" placeholder="Search readers" aria-label="Search" value="{{ query }}">
+            <button class="btn btn-outline-primary" type="submit">Search</button>
         </form>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addReaderModal">Add Reader</button>
+    </div>
 
-        <!-- Readers count below search input -->
-        <div style="width: 50%;">
-            <p class="mb-0"><strong>{{ readers|length }}</strong> readers subscribed.</p>
-        </div>
-        <div class="row" style="margin-top: 20px;">
-            <div class="container" style="overflow-y:auto;height: 400px;">
-                {% if message %}
-                     <div class="alert alert-warning">{{ message }}</div>
-                {% endif %}
+    <p><strong>{{ readers|length }}</strong> readers subscribed.</p>
 
-                <table class="table table-hover">
-                    <thead>
-                    <tr>
-                        <td>Reader ID</td>
-                        <td>Name</td>
-                        <td>Contact</td>
-                        <td>Reference ID</td>
-                        <td>Address</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                        {% for reader in readers %}
-                            <tr>
-                                <td>{{reader.id}}</td>
-                                <td>
-                                    {% if reader.active%}
-                                        <span class="btn btn-success">{{reader.reader_name}}</span>
-                                    {% else %}
-                                        <span class="btn btn-secondary">{{reader.reader_name}}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{reader.reader_contact}}</td>
-                                <td>{{reader.reference_id}}</td>
-                                <td>{{reader.reader_address}}</td>
-                                <td>
-                                    <a href="{% url 'update_reader' reader.id %}" class="btn btn-sm btn-warning">Update</a>
-                                    <a href="{% url 'delete_reader' reader.id %}" class="btn btn-sm btn-danger">Delete</a>
-            </td>
+    <!-- Message if available -->
+    {% if message %}
+    <div class="alert alert-warning">{{ message }}</div>
+    {% endif %}
 
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody> 
-
-                </table>
-            </div>
-        </div>
+    <!-- Reader Table -->
+    <div class="table-responsive" style="max-height: 500px; overflow-y:auto;">
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Reference ID</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reader in readers %}
+                <tr>
+                    <td>{{ reader.id }}</td>
+                    <td>
+                        {% if reader.active %}
+                        <span class="badge bg-success">{{ reader.reader_name }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ reader.reader_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ reader.reader_contact }}</td>
+                    <td>{{ reader.reference_id }}</td>
+                    <td>{{ reader.reader_address }}</td>
+                    <td>
+                        <a href="{% url 'update_reader' reader.id %}" class="btn btn-sm btn-primary">Edit</a>
+                        <a href="{% url 'delete_reader' reader.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure to delete this reader?');">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No readers found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
-</div>
-</div>
-{% endblock %}
 
+<!-- Modal for Add Reader -->
+<div class="modal fade" id="addReaderModal" tabindex="-1" aria-labelledby="addReaderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form action="{% url 'save_reader' %}" method="POST">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="addReaderModalLabel">Register New Reader</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {% if duplicate_error %}
+          <div class="alert alert-danger">
+            {{ duplicate_error }}
+          </div>
+          {% endif %}
+          <div class="mb-3">
+            <label for="reader_name" class="form-label">Name</label>
+            <input type="text" class="form-control" name="reader_name" required>
+          </div>
+          <div class="mb-3">
+            <label for="reader_contact" class="form-label">Contact</label>
+            <input type="text" class="form-control" name="reader_contact" required>
+          </div>
+          <div class="mb-3">
+            <label for="reader_ref_id" class="form-label">Reference ID</label>
+            <input type="text" class="form-control" name="reader_ref_id">
+          </div>
+          <div class="mb-3">
+            <label for="address" class="form-label">Address</label>
+            <textarea class="form-control" name="address" rows="2"></textarea>
+          </div>
+          <ul class="small text-muted">
+            <li>Readers should not register multiple times</li>
+            <li>Duplicate reader registration will be deactivated</li>
+            <li>Contact info must be verified</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
