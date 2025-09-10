@@ -14,3 +14,10 @@ django-admin startproject project_name .
 python manage.py runserver
 <!-- create app -->
 python manage.py startapp app_name
+
+<!--freeze requirements-->
+
+pip freeze > requirements.txt
+
+<!-- install package -->
+pip install -r requirements.txt

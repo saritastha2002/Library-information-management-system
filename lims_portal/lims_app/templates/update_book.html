@@ -1,0 +1,27 @@
+{% extends "index.html" %}
+{% block main_content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Update Book</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="{{ book.title }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Author</label>
+            <input type="text" name="author" class="form-control" value="{{ book.author }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Genre</label>
+            <input type="text" name="genre" class="form-control" value="{{ book.genre }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="available_quantity" class="form-control" value="{{ book.available_quantity }}" min="1" required>
+        </div>
+        <button type="submit" class="btn btn-success">Update Book</button>
+        <a href="{% url 'book_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

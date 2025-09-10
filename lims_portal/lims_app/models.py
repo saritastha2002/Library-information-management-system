@@ -11,3 +11,13 @@ class Reader(models.Model):
 
     def __str__(self):
         return f"{self.reference_id} - {self.reader_name}"
+    
+    
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.CharField(max_length=200)
+    genre = models.CharField(max_length=100)
+    available_quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return self.title
