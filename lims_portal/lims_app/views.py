@@ -220,3 +220,19 @@ def add_borrowing(request):
         'today': today,
         'due_date': due_date
     })
+    
+    # Return
+def return_book(request, borrowing_id):
+    borrowing = get_object_or_404(Borrowing, id=borrowing_id)
+    book = borrowing.book
+    book.available_quantity += 1
+    book.save()
+    borrowing.delete()
+    messages.success(request, f"Book '{book.title}' returned successfully!")
+    return redirect('returns_tab')  
+
+def returns_tab(request):
+    records = Borrowing.objects.all()
+    return render(request, 'return_borrowing.html', {'records': records, 'current_tab': 'returns'})
+
+

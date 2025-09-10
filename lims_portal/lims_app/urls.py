@@ -16,5 +16,6 @@ urlpatterns = [
     path('books/decrease/<int:book_id>/', views.decrease_quantity, name='decrease_quantity'),
     path('records/', views.records_tab, name='records_tab'),
     path('records/add/', views.add_borrowing, name='add_borrowing'),
-   
+    path('returns/', views.returns_tab, name='returns_tab'),
+    path('returns/<int:borrowing_id>/', views.return_book, name='return_book'),
 ]
