@@ -1,0 +1,76 @@
+{% extends "index.html" %}
+{% load widget_tweaks %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <!-- Card -->
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header bg-primary text-white text-center rounded-top">
+                    <h4 class="mb-0">➕ Add Borrowing Member</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <!-- Display form errors -->
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Member Name -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">👤 Member Name</label>
+                            {{ form.member_name|add_class:"form-control" }}
+                        </div>
+
+                        <!-- Book -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📚 Book</label>
+                            {{ form.book|add_class:"form-select" }}
+                        </div>
+
+                        <!-- Borrowed On (readonly, auto today) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🕒 Borrowed On</label>
+                            <input type="text" class="form-control bg-light" value="{{ today }}" readonly>
+                        </div>
+
+                        <!-- Due Date (readonly, auto +7 days) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📅 Due Date</label>
+                            <input type="text" class="form-control bg-light" value="{{ due_date }}" readonly>
+                        </div>
+
+                        <!-- Submit button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-sm shadow-sm">
+                                ✅ Save Borrowing
+                            </button>
+                        </div>
+
+                        <!-- Back button -->
+                        <div class="d-grid mt-2">
+                            <a href="{% url 'records_tab' %}" class="btn btn-secondary btn-sm shadow-sm">
+                                🔙 Back to My Bag
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- End Card -->
+        </div>
+    </div>
+</div>
+{% endblock %}

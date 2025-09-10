@@ -1,10 +1,11 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.http import HttpResponse
 from .models import *
-from .form import ReaderForm,Reader,Book
+from .form import *
 from django.db import IntegrityError
 from django.db.models import Q 
 from django.contrib import messages
+from datetime import date,timedelta
 
 def home(request):
     return render(request, "home.html",context={"current_tab" : "home"})
@@ -169,3 +170,53 @@ def decrease_quantity(request, book_id):
     else:
         messages.warning(request, f"'{book.title}' is out of stock!")
     return redirect('book_list')
+
+# my bag
+
+def records_tab(request):
+    form = BorrowingFilterForm(request.GET or None)
+    records = Borrowing.objects.all()
+
+    if form.is_valid():
+        member_name = form.cleaned_data.get('member_name')
+        due_date = form.cleaned_data.get('due_date')
+        if member_name:
+            records = records.filter(member_name__icontains=member_name)
+        if due_date:
+            records = records.filter(due_date=due_date)
+
+    return render(request, 'records.html', {'current_tab': 'records', 'form': form, 'records': records})
+
+
+def add_borrowing(request):
+    today = date.today()
+    due_date = today + timedelta(days=7)
+
+    if request.method == 'POST':
+        form = BorrowingForm(request.POST)
+        if form.is_valid():
+            book = form.cleaned_data['book']
+
+            if book.available_quantity > 0:
+                borrowing = form.save(commit=False)
+                borrowing.borrowed_on = today
+                borrowing.due_date = due_date
+                borrowing.save()
+
+                book.available_quantity -= 1
+                book.save()
+
+                messages.success(request, "Borrowing record added successfully!")
+                return redirect('records_tab')  # important: redirect after POST
+            else:
+                messages.error(request, f"'{book.title}' is out of stock! Cannot borrow.")
+                return redirect('add_borrowing')  # redirect to form again
+    else:
+        form = BorrowingForm()
+
+    return render(request, 'add_borrowing.html', {
+        'form': form,
+        'current_tab': 'records',
+        'today': today,
+        'due_date': due_date
+    })
