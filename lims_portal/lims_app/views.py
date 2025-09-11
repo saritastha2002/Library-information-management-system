@@ -3,10 +3,12 @@ from django.http import HttpResponse
 from .models import *
 from .form import *
 from django.db import IntegrityError
-from django.db.models import Q 
+from django.db.models import Q , Sum
 from django.contrib import messages
 from datetime import date,timedelta
 from django.core.paginator import Paginator
+from django.db import transaction
+
 
 def home(request):
     return render(request, "home.html",context={"current_tab" : "home"})
@@ -29,9 +31,14 @@ def readers_tab(request):
     else:
         readers = Reader.objects.all()
 
+    # Pagination: 5 readers per page
+    paginator = Paginator(readers, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "readers.html", {
         "current_tab": "readers",
-        "readers": readers,
+        "readers": page_obj,   # page_obj पास गरियो
         "query": query,
         "message": message
     })
@@ -39,6 +46,8 @@ def readers_tab(request):
 
 
 def save_reader(request):
+    readers = Reader.objects.all()  # get all readers for rendering
+
     if request.method == "POST":
         ref_id = request.POST.get('reader_ref_id', '').strip()
         name = request.POST.get('reader_name', '').strip()
@@ -47,11 +56,11 @@ def save_reader(request):
 
         # Check required fields
         if not ref_id or not name:
-            readers = Reader.objects.all()
             return render(request, "readers.html", {
                 "current_tab": "readers",
                 "readers": readers,
-                "duplicate_error": "Please fill in all required fields!"
+                "duplicate_error": "Please fill in all required fields!",
+                "show_add_modal": True   # <-- keep modal open
             })
 
         # Check duplicates
@@ -60,14 +69,14 @@ def save_reader(request):
         ).exists()
 
         if duplicate_exists:
-            readers = Reader.objects.all()
             return render(request, "readers.html", {
                 "current_tab": "readers",
                 "readers": readers,
-                "duplicate_error": "Reference ID or Contact already exists!"
+                "duplicate_error": "Reference ID or Contact already exists!",
+                "show_add_modal": True   # <-- keep modal open
             })
 
-        # Save
+        # Save new reader
         try:
             Reader.objects.create(
                 reference_id=ref_id,
@@ -76,15 +85,19 @@ def save_reader(request):
                 reader_address=address,
                 active=True
             )
+            messages.success(request, "Reader added successfully!")
+            return redirect("readers_tab")
+
         except IntegrityError:
-            readers = Reader.objects.all()
             return render(request, "readers.html", {
                 "current_tab": "readers",
                 "readers": readers,
-                "duplicate_error": "A reader with this Reference ID already exists!"
+                "duplicate_error": "A reader with this Reference ID already exists!",
+                "show_add_modal": True
             })
 
     return redirect("readers_tab")
+
 
 
 def update_reader(request, id):
@@ -109,35 +122,53 @@ def delete_reader(request, id):
 
 
 # Book
+
 def book_list(request):
     query = request.GET.get('search', '')
+    books = Book.objects.all()
+
     if query:
-        books = Book.objects.filter(
+        books = books.filter(
             Q(title__icontains=query) |
             Q(author__icontains=query) |
             Q(genre__icontains=query)
         )
-    else:
-        books = Book.objects.all()
-        
-    paginator = Paginator(books, 5)  # 5 books per page
+
+    paginator = Paginator(books, 5)  # pagination
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'books.html', {'page_obj': page_obj, 'query': query})
+
+    # Count for display
+    total_books = Book.objects.count()   # unique book titles
+    total_quantity = Book.objects.aggregate(Sum('available_quantity'))['available_quantity__sum'] or 0
+
+    return render(request, 'books.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'total_books': total_books,
+        'total_quantity': total_quantity,
+    })
+
     
 
 def add_book(request):
     if request.method == 'POST':
-        title = request.POST.get('title')
-        author = request.POST.get('author')
-        genre = request.POST.get('genre')
-        if title and author and genre:
+        title = request.POST.get('title', '').strip()
+        author = request.POST.get('author', '').strip()
+        genre = request.POST.get('genre', '').strip()
+
+        if not title or not author or not genre:
+            messages.error(request, "All fields are required.")
+            return redirect('book_list')
+
+        try:
             Book.objects.create(title=title, author=author, genre=genre)
             messages.success(request, "Book added successfully!")
-        else:
-            messages.error(request, "All fields are required.")
+        except IntegrityError:
+            messages.error(request, "Book already listed!")   # 👈 duplicate title case
+
     return redirect('book_list')
+
 
 def update_book(request, book_id):
     book = Book.objects.get(id=book_id)
@@ -181,19 +212,28 @@ def decrease_quantity(request, book_id):
 
 def records_tab(request):
     form = BorrowingFilterForm(request.GET or None)
-    records = Borrowing.objects.select_related('member','book').all()
+    records = Borrowing.objects.select_related('member', 'book').all()
 
     if form.is_valid():
         member_name = form.cleaned_data.get('member_name')
         due_date = form.cleaned_data.get('due_date')
+
         if member_name:
-            records = records.filter(member_name__icontains=member_name)
+            records = records.filter(
+                Q(member__reader_name__icontains=member_name) |
+                Q(member__reference_id__icontains=member_name)
+            )
         if due_date:
             records = records.filter(due_date=due_date)
+
     paginator = Paginator(records, 5)  # 5 records per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'records.html', {'current_tab': 'records', 'form': form, 'page_obj': page_obj})
+    return render(request, 'records.html', {
+        'current_tab': 'records',
+        'form': form,
+        'page_obj': page_obj
+    })
 
 
 def add_borrowing(request):
@@ -205,20 +245,24 @@ def add_borrowing(request):
         if form.is_valid():
             book = form.cleaned_data['book']
 
-            if book.available_quantity > 0:
+            if book.available_quantity <= 0:
+                messages.error(request, f"'{book.title}' is out of stock! Cannot borrow.")
+                return redirect('records_tab')
+
+            # Use transaction to ensure both actions happen together
+            with transaction.atomic():
+                # Decrease available quantity
+                book.available_quantity -= 1
+                book.save()
+
+                # Save borrowing record
                 borrowing = form.save(commit=False)
                 borrowing.borrowed_on = today
                 borrowing.due_date = due_date
                 borrowing.save()
 
-                book.available_quantity -= 1
-                book.save()
-
-                messages.success(request, "Borrowing record added successfully!")
-                return redirect('records_tab')  # important: redirect after POST
-            else:
-                messages.error(request, f"'{book.title}' is out of stock! Cannot borrow.")
-                return redirect('add_borrowing')  # redirect to form again
+            messages.success(request, "Borrowing record added successfully!")
+            return redirect('records_tab')  # redirect after POST
     else:
         form = BorrowingForm()
 
@@ -230,14 +274,15 @@ def add_borrowing(request):
     })
     
     # Return
+  
 def return_book(request, borrowing_id):
-    borrowing = get_object_or_404(Borrowing, id=borrowing_id)
+    borrowing = Borrowing.objects.get(id=borrowing_id)
     book = borrowing.book
     book.available_quantity += 1
     book.save()
     borrowing.delete()
     messages.success(request, f"Book '{book.title}' returned successfully!")
-    return redirect('returns_tab')  
+    return redirect('records_tab')
 
 def returns_tab(request):
     records = Borrowing.objects.all().order_by('-borrowed_on')

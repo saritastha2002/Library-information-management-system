@@ -8,7 +8,7 @@
 
     <!-- Top Bar: Search + Add Button -->
     <div class="d-flex justify-content-between mb-3">
-        <form class="d-flex w-75" role="search" action="/readers/" method="POST">
+        <form class="d-flex w-75" role="search" action="{% url 'readers_tab' %}" method="POST">
             {% csrf_token %}
             <input class="form-control me-2" type="search" name="query" placeholder="Search readers" aria-label="Search" value="{{ query }}">
             <button class="btn btn-outline-primary" type="submit">Search</button>
@@ -16,11 +16,16 @@
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addReaderModal">Add Reader</button>
     </div>
 
-    <p><strong>{{ readers|length }}</strong> readers subscribed.</p>
+    <p><strong>{{ readers.paginator.count }}</strong> readers subscribed.</p>
 
     <!-- Message if available -->
-    {% if message %}
-    <div class="alert alert-warning">{{ message }}</div>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
     {% endif %}
 
     <!-- Reader Table -->
@@ -63,6 +68,51 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination Controls -->
+    {% if readers.has_other_pages %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center pagination-sm">
+
+            <!-- Previous Page -->
+            {% if readers.has_previous %}
+            <li class="page-item">
+                <a class="page-link rounded-pill" href="?page={{ readers.previous_page_number }}{% if query %}&query={{ query }}{% endif %}">« Prev</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link rounded-pill">« Prev</span>
+            </li>
+            {% endif %}
+
+            <!-- Page Numbers -->
+            {% for num in readers.paginator.page_range %}
+                {% if readers.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link rounded-pill">{{ num }}</span>
+                    </li>
+                {% elif num >= readers.number|add:-2 and num <= readers.number|add:2 %}
+                    <li class="page-item">
+                        <a class="page-link rounded-pill" href="?page={{ num }}{% if query %}&query={{ query }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Next Page -->
+            {% if readers.has_next %}
+            <li class="page-item">
+                <a class="page-link rounded-pill" href="?page={{ readers.next_page_number }}{% if query %}&query={{ query }}{% endif %}">Next »</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link rounded-pill">Next »</span>
+            </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+    {% endif %}
+
 </div>
 
 <!-- Modal for Add Reader -->
@@ -83,25 +133,20 @@
           {% endif %}
           <div class="mb-3">
             <label for="reader_name" class="form-label">Name</label>
-            <input type="text" class="form-control" name="reader_name" required>
+            <input type="text" class="form-control" name="reader_name" value="{{ reader_name }}" required>
           </div>
           <div class="mb-3">
             <label for="reader_contact" class="form-label">Contact</label>
-            <input type="text" class="form-control" name="reader_contact" required>
+            <input type="text" class="form-control" name="reader_contact" value="{{ reader_contact }}" required>
           </div>
           <div class="mb-3">
             <label for="reader_ref_id" class="form-label">Reference ID</label>
-            <input type="text" class="form-control" name="reader_ref_id">
+            <input type="text" class="form-control" name="reader_ref_id" value="{{ reader_ref_id }}">
           </div>
           <div class="mb-3">
             <label for="address" class="form-label">Address</label>
-            <textarea class="form-control" name="address" rows="2"></textarea>
+            <textarea class="form-control" name="address" rows="2">{{ address }}</textarea>
           </div>
-          <ul class="small text-muted">
-            <li>Readers should not register multiple times</li>
-            <li>Duplicate reader registration will be deactivated</li>
-            <li>Contact info must be verified</li>
-          </ul>
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Save</button>
@@ -111,5 +156,15 @@
     </div>
   </div>
 </div>
+
+<!-- Script to auto-open modal if error -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    {% if show_add_modal %}
+        var myModal = new bootstrap.Modal(document.getElementById('addReaderModal'));
+        myModal.show();
+    {% endif %}
+});
+</script>
 
 {% endblock %}

@@ -17,7 +17,7 @@ class Reader(models.Model):
     
     
 class Book(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200,unique=True)
     author = models.CharField(max_length=200)
     genre = models.CharField(max_length=100)
     available_quantity = models.PositiveIntegerField(default=1)
