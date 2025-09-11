@@ -16,18 +16,26 @@ class BookForm(forms.ModelForm):
 class BorrowingForm(forms.ModelForm):
     class Meta:
         model = Borrowing
-        fields = ['member_name', 'book']
+        fields = ['member', 'book']  # changed from member_name to member
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Show only active members in dropdown
+        self.fields['member'].queryset = Reader.objects.filter(active=True)
+        self.fields['member'].widget.attrs.update({'class': 'form-control'})
+        self.fields['book'].widget.attrs.update({'class': 'form-control'})
 
     def clean(self):
         cleaned_data = super().clean()
-        member = cleaned_data.get('member_name')
+        member = cleaned_data.get('member')
         today = date.today()
 
         # Check if member already borrowed today
-        if member and Borrowing.objects.filter(member_name=member, borrowed_on=today).exists():
-            raise ValidationError(f"{member} has already borrowed a book today!")
+        if member and Borrowing.objects.filter(member=member, borrowed_on=today).exists():
+            raise ValidationError(f"{member.reader_name} has already borrowed a book today!")
 
         return cleaned_data
+
 
 
 #for filtering

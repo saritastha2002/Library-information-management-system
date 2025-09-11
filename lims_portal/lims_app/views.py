@@ -181,7 +181,7 @@ def decrease_quantity(request, book_id):
 
 def records_tab(request):
     form = BorrowingFilterForm(request.GET or None)
-    records = Borrowing.objects.all()
+    records = Borrowing.objects.select_related('member','book').all()
 
     if form.is_valid():
         member_name = form.cleaned_data.get('member_name')

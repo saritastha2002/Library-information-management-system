@@ -37,7 +37,7 @@
             {% for record in page_obj %}
             <tr>
                 <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
-                <td>{{ record.member_name }}</td>
+                <td>{{ record.member.reader_name }}</td>
                 <td>{{ record.book.title }}</td>
                 <td>{{ record.due_date }}</td>
             </tr>

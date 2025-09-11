@@ -2,6 +2,7 @@ from django.db import models
 from datetime import timedelta
 from django.utils.timezone import now
 
+
 # Create your models here.
 
 class Reader(models.Model):
@@ -26,18 +27,24 @@ class Book(models.Model):
     
     
 
-
 class Borrowing(models.Model):
-    member_name = models.CharField(max_length=100)
+    member = models.ForeignKey(
+        'Reader', 
+        on_delete=models.CASCADE,
+        limit_choices_to={'active': True}  # only active members
+    )
     book = models.ForeignKey('Book', on_delete=models.CASCADE)
     borrowed_on = models.DateField(auto_now_add=True)
     due_date = models.DateField()
 
     def save(self, *args, **kwargs):
-        # If due_date not set, make it 7 days after borrowed_on
         if not self.due_date:
             self.due_date = (self.borrowed_on or now().date()) + timedelta(days=7)
         super().save(*args, **kwargs)
+    @property
+    def member_name(self):
+        return self.member.reader_name
+
 
     def __str__(self):
-        return f"{self.member_name} - {self.book.title}"
+        return f"{self.member.reader_name} - {self.book.title}"
