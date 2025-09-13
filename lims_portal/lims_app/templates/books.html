@@ -7,10 +7,22 @@
     {% if messages %}
         <div class="mb-3">
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+                {% if message.tags == "error" %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% elif message.tags == "success" %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
             {% endfor %}
         </div>
     {% endif %}
@@ -70,7 +82,7 @@
                         <div class="tab-pane fade" id="filterBookTab">
                             <form method="get" action="{% url 'book_list' %}" class="d-flex flex-column">
                                 <input type="text" name="search" class="form-control mb-2" placeholder="Search by title, author, or genre" value="{{ query }}">
-                                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                                <button type="submit" class="btn btn-secondary w-100">Filter Book</button>
                             </form>
                         </div>
                     </div>
@@ -78,6 +90,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Conditional Back Button -->
+    {% if query %}
+    <div class="mb-3">
+        <a href="{% url 'book_list' %}" class="btn btn-outline-success btn-sm">Back</a>
+    </div>
+    {% endif %}
 
     <!-- Book Table -->
     <div class="table-responsive">
@@ -99,10 +118,10 @@
                     <td>{{ book.genre }}</td>
                     <td>{{ book.available_quantity }}</td>
                     <td>
-                        <a href="{% url 'increase_quantity' book.id %}" class="btn btn-success btn-sm">+</a>
-                        <a href="{% url 'decrease_quantity' book.id %}" class="btn btn-warning btn-sm">-</a>
-                        <a href="{% url 'update_book' book.id %}" class="btn btn-info btn-sm">Edit</a>
-                        <a href="{% url 'delete_book' book.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this book?');">Delete</a>
+                        <a href="{% url 'increase_quantity' book.id %}" class="btn btn-success btn-sm" title="Increase Quantity">+</a>
+                        <a href="{% url 'decrease_quantity' book.id %}" class="btn btn-warning btn-sm" title="Decrease Quantity">-</a>
+                        <a href="{% url 'update_book' book.id %}" class="btn btn-info btn-sm" title="Edit Book">Edit</a>
+                        <a href="{% url 'delete_book' book.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this book?');" title="Delete Book">Delete</a>
                     </td>
                 </tr>
                 {% empty %}

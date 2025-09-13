@@ -3,7 +3,7 @@
 
 {% block main_content %}
 <div class="container mt-4">
-    <h3 class="mb-3">My Bag - Borrowing Records</h3>
+    <h3 class="mb-3"> Borrowing Records</h3>
 
     <!-- Filter Form -->
     <form method="get" class="row g-3 mb-3">
@@ -27,7 +27,9 @@
                 <th>#</th>
                 <th>Member Name</th>
                 <th>Book Title</th>
+                <th>Borrowed On</th>
                 <th>Due Date</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -36,7 +38,14 @@
                 <td>{{ forloop.counter }}</td>
                 <td>{{ record.member_name }}</td>
                 <td>{{ record.book.title }}</td>
+                <td>{{ record.borrowed_on }}</td>
                 <td>{{ record.due_date }}</td>
+                <td>
+                    <form method="post" action="{% url 'return_book' record.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">✅ Return</button>
+                    </form>
+                </td>
             </tr>
             {% empty %}
             <tr>

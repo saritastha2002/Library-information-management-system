@@ -1,9 +1,16 @@
-from django.urls import path
+from django.urls import path,include
 from .views import *
 from . import views
 
+
 urlpatterns = [
+    
     path('home/',views.home,name='home'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('register/', views.register_view, name='register'),
+    path('dashboard/', views.member_dashboard, name='member_dashboard'),
+    
     path('readers/', views.readers_tab, name='readers_tab'),
     path('readers/add/',views.save_reader,name="save_reader"),
     path("readers/update/<int:id>/", views.update_reader, name="update_reader"),

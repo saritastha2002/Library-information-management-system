@@ -2,26 +2,51 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block main_content%}
+{% block main_content %}
 <main role="main">
 <div class="jumbotron">
-    <div class="container">
-        <img src="{% static 'lims_app/logo1.jpg' %}"  class="rounded float-start" alt="logo" height="200" style="margin-right: 20px">
-        <h1 class="display-4">Hello, Readers</h1>
-        <p>✨ “Welcome to the Library — a world of stories, knowledge and imagination, where every reader finds their book!”</p>
-        <p><button class="btn btn-primary btn-lg">Browse our collection ></button></p>
+    <div class="container d-flex align-items-center">
+        <img src="{% static 'lims_app/logo1.jpg' %}" class="rounded float-start me-4" alt="logo" height="200">
+        <div>
+            <h1 class="display-4">
+                Hello, 
+                {% if user.is_authenticated %}
+                    {% if user.is_admin %}
+                        Admin
+                    {% elif user.is_librarian %}
+                        Librarian
+                    {% else %}
+                        {{ user.username }}
+                    {% endif %}
+                {% else %}
+                    Reader
+                {% endif %}
+            </h1>
+            <p>✨ “Welcome to the Library — a world of stories, knowledge and imagination, where every reader finds their book!”</p>
 
+            {% if user.is_authenticated %}
+                {% if user.is_admin %}
+                    <a href="{% url 'readers_tab' %}" class="btn btn-primary btn-lg">Manage Readers & Books ></a>
+                {% elif user.is_librarian %}
+                    <a href="{% url 'book_list' %}" class="btn btn-primary btn-lg">Manage Books ></a>
+                {% else %}
+                    <a href="{% url 'member_dashboard' %}" class="btn btn-primary btn-lg">Browse our Collection ></a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg">Login to Explore ></a>
+            {% endif %}
+        </div>
     </div>
 </div>
-<div class="container">
-  <div class="container mt-5">
+
+<div class="container mt-5">
   <div class="row g-4 text-center">
     <!-- Why Reading -->
     <div class="col-md-4">
-      <div class="card h-100 shadow border-0">
+      <div class="card h-100 shadow border-0 bg-light">
         <div class="card-body">
-          <h3>📚 Why reading is important?</h3>
-          <p class="card-text unified-text">Reading isn’t just learning — it’s adventure! Every page takes you somewhere new, 
+          <h3>📚 Why Reading is Important?</h3>
+          <p class="card-text">Reading isn’t just learning — it’s adventure! Every page takes you somewhere new, 
              helping you dream bigger, think sharper, and explore endless possibilities...</p>
         </div>
       </div>
@@ -29,10 +54,10 @@
 
     <!-- Key Benefits -->
     <div class="col-md-4">
-      <div class="card h-100 shadow border-0">
+      <div class="card h-100 shadow border-0 bg-light">
         <div class="card-body">
           <h3>✨ Key Benefits</h3>
-          <ul class="list-unstyled unified-text">
+          <ul class="list-unstyled">
             <li>📖 Knowledge</li>
             <li>🧠 Focus</li>
             <li>💡 Creativity</li>
@@ -43,11 +68,11 @@
       </div>
     </div>
 
-    <!-- Thought -->
+    <!-- Thought for the Day -->
     <div class="col-md-4">
-      <div class="card h-100 shadow border-0">
+      <div class="card h-100 shadow border-0 bg-light">
         <div class="card-body">
-          <h3 class="card-titlevunified-title">💭 Thought for the day</h3>
+          <h3 class="card-title">💭 Thought for the Day</h3>
           <blockquote class="blockquote">
             <p>"Peace does not mean to be in a place where there is no noise, trouble, or hard work. 
                It means to be in the midst of those things and still be calm in your heart."</p>
@@ -58,10 +83,12 @@
     </div>
   </div>
 </div>
+
 <hr>
-</div>
+
 </main>
-<footer class="container" style="text-align: center; padding: 10px 0;">
-    <p>© library 2025</p>
+
+<footer class="container text-center py-3 border-top">
+    <p>© Library 2025</p>
 </footer>
 {% endblock %}

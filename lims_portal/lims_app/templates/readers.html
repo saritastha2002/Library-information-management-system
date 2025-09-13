@@ -16,6 +16,15 @@
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addReaderModal">Add Reader</button>
     </div>
 
+    <!-- Back Button after search -->
+    {% if query %}
+    <div class="mb-3">
+        <a href="{% url 'readers_tab' %}" class="btn btn-outline-sucess btn-sm back-btn">
+             Back 
+        </a>
+    </div>
+    {% endif %}
+
     <p><strong>{{ readers.paginator.count }}</strong> readers subscribed.</p>
 
     <!-- Message if available -->
@@ -166,5 +175,17 @@ document.addEventListener("DOMContentLoaded", function() {
     {% endif %}
 });
 </script>
+<style>
+.back-btn {
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background-color: #198754; /* bootstrap green */
+    color: white !important;
+    border-color: #198754;
+}
+</style>
+
 
 {% endblock %}

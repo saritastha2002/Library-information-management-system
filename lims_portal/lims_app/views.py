@@ -1,22 +1,149 @@
 from django.shortcuts import render,redirect,get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from .models import *
 from .form import *
 from django.db import IntegrityError
-from django.db.models import Q , Sum
+from django.db.models import Q , Sum, Count
 from django.contrib import messages
 from datetime import date,timedelta
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.contrib.auth import login, authenticate, logout
+from .decorators import admin_required, librarian_required, member_required
+from rest_framework.authtoken.models import Token
+from django.utils.timezone import now
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.decorators import login_required
+
+# Authentication Views
+def login_view(request):
+    # Clear previous messages to avoid showing logout message to other users
+    storage = messages.get_messages(request)
+    for _ in storage:
+        pass 
+    if request.user.is_authenticated:
+        # Redirect based on user role if already logged in
+        return redirect('home') 
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            # Create or get token for API access
+            token, created = Token.objects.get_or_create(user=user)
+            # Redirect based on user role
+            return redirect('home')
+        else:
+            messages.error(request, "Invalid username or password.")
+    return render(request, 'registration/login.html')
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect('login')
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+        
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        contact = request.POST.get('contact', '').strip()
+        address = request.POST.get('address', '').strip()
+        role = request.POST.get('role', 'member')
+        reference_id = request.POST.get('reference_id', '').strip()
+
+        # Password match check
+        if password != password_confirm:
+            messages.error(request, "Passwords don't match.")
+            return render(request, 'registration/register.html')
+
+        # Check for duplicate username
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists.")
+            return render(request, 'registration/register.html')
+
+        # Reference ID check (for member role only)
+        if role == 'member':
+            if not reference_id:
+                messages.error(request, "Reference ID is required for members!")
+                return render(request, 'registration/register.html')
+
+            if Reader.objects.filter(reference_id=reference_id).exists():
+                messages.error(request, "Reference ID already exists!")
+                return render(request, 'registration/register.html')
+
+        try:
+            # 1. Create the User
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+
+            # If you have a 'role' field in custom User model
+            if hasattr(user, 'role'):
+                user.role = role
+                user.save()
+
+            # 2. Create Reader profile if user is a member
+            if role == 'member':
+                Reader.objects.create(
+                    user=user,
+                    reader_name=f"{first_name} {last_name}",
+                    reference_id=reference_id,
+                    reader_contact=contact,
+                    reader_address=address,
+                    active=True
+                )
+
+            # 3. Login and redirect
+            login(request, user)
+            messages.success(request, "Account created successfully!")
+            return redirect('home')
+
+        except Exception as e:
+            messages.error(request, f"Error creating account: {str(e)}")
+
+    return render(request, 'registration/register.html')
 
 
+@login_required(login_url='login')
 def home(request):
-    return render(request, "home.html",context={"current_tab" : "home"})
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    # Get stats for dashboard
+    total_books = Book.objects.count()
+    total_readers = Reader.objects.count()
+    active_borrowings = Borrowing.objects.count()
+
+    overdue_count = 0
+    if hasattr(request.user, "reader"):
+        overdue_count = request.user.reader.borrowing_set.filter(due_date__lt=now()).count()
+
+    return render(request, "home.html", {
+        "current_tab": "home",
+        "total_books": total_books,
+        "total_readers": total_readers,
+        "active_borrowings": active_borrowings,
+        "overdue_count": overdue_count,   #  now template can use this
+    })
+
 
 # Readers
+@admin_required
 def readers(request):
     return render(request, "readers.html",context={"current_tab" : "readers"})
 
+@admin_required
 def readers_tab(request):
     query = ''
     message = ''
@@ -38,13 +165,12 @@ def readers_tab(request):
 
     return render(request, "readers.html", {
         "current_tab": "readers",
-        "readers": page_obj,   # page_obj पास गरियो
+        "readers": page_obj,
         "query": query,
         "message": message
     })
 
-
-
+@admin_required
 def save_reader(request):
     readers = Reader.objects.all()  # get all readers for rendering
 
@@ -98,31 +224,35 @@ def save_reader(request):
 
     return redirect("readers_tab")
 
-
-
+@admin_required
 def update_reader(request, id):
-    reader_obj = get_object_or_404(Reader, id=id)   # Capital 'R'
+    reader_obj = get_object_or_404(Reader, id=id)
 
     if request.method == 'POST':
         form = ReaderForm(request.POST, instance=reader_obj)
         if form.is_valid():
             form.save()
+            messages.success(request, "Reader updated successfully!")
             return redirect('readers_tab')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         form = ReaderForm(instance=reader_obj)
 
     return render(request, 'update_reader.html', {'form': form})
 
+@admin_required
 def delete_reader(request, id):
-    reader_obj = Reader.objects.get(id=id)   # single object
+    reader_obj = Reader.objects.get(id=id)
     if request.method == 'POST':
+        reader_name = reader_obj.reader_name
         reader_obj.delete()
-        return redirect('readers_tab')   # or 'readers_tab', depending on your urls.py
+        messages.success(request, f"Reader '{reader_name}' deleted successfully!")
+        return redirect('readers_tab')
     return render(request, 'delete_reader.html', {'reader': reader_obj})
 
-
-# Book
-
+# Book Views
+@librarian_required
 def book_list(request):
     query = request.GET.get('search', '')
     books = Book.objects.all()
@@ -134,12 +264,11 @@ def book_list(request):
             Q(genre__icontains=query)
         )
 
-    paginator = Paginator(books, 5)  # pagination
+    paginator = Paginator(books, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Count for display
-    total_books = Book.objects.count()   # unique book titles
+    total_books = Book.objects.count()
     total_quantity = Book.objects.aggregate(Sum('available_quantity'))['available_quantity__sum'] or 0
 
     return render(request, 'books.html', {
@@ -149,27 +278,32 @@ def book_list(request):
         'total_quantity': total_quantity,
     })
 
-    
-
+@librarian_required
 def add_book(request):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         author = request.POST.get('author', '').strip()
         genre = request.POST.get('genre', '').strip()
+        quantity = request.POST.get('quantity', 1)
 
         if not title or not author or not genre:
             messages.error(request, "All fields are required.")
             return redirect('book_list')
 
         try:
-            Book.objects.create(title=title, author=author, genre=genre)
+            Book.objects.create(
+                title=title, 
+                author=author, 
+                genre=genre,
+                available_quantity=quantity
+            )
             messages.success(request, "Book added successfully!")
         except IntegrityError:
-            messages.error(request, "Book already listed!")   # 👈 duplicate title case
-
+            messages.error(request, "Book already listed!")
+    
     return redirect('book_list')
 
-
+@librarian_required
 def update_book(request, book_id):
     book = Book.objects.get(id=book_id)
     if request.method == 'POST':
@@ -182,14 +316,15 @@ def update_book(request, book_id):
         return redirect('book_list')
     return render(request, 'update_book.html', {'book': book})
 
-
+@librarian_required
 def delete_book(request, book_id):
     book = Book.objects.get(id=book_id)
+    book_title = book.title
     book.delete()
-    messages.success(request, "Book deleted successfully!")
+    messages.success(request, f"Book '{book_title}' deleted successfully!")
     return redirect('book_list')
 
-# Increase quantity (e.g., when adding a new copy)
+@librarian_required
 def increase_quantity(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     book.available_quantity += 1
@@ -197,7 +332,7 @@ def increase_quantity(request, book_id):
     messages.success(request, f"Quantity increased for '{book.title}'")
     return redirect('book_list')
 
-# Decrease quantity (e.g., when book is purchased)
+@librarian_required
 def decrease_quantity(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     if book.available_quantity > 0:
@@ -208,11 +343,11 @@ def decrease_quantity(request, book_id):
         messages.warning(request, f"'{book.title}' is out of stock!")
     return redirect('book_list')
 
-# my bag
-
+# Borrowing Records
+@librarian_required
 def records_tab(request):
     form = BorrowingFilterForm(request.GET or None)
-    records = Borrowing.objects.select_related('member', 'book').all()
+    records = Borrowing.objects.select_related('member', 'book').all().order_by('returned','-borrowed_on')
 
     if form.is_valid():
         member_name = form.cleaned_data.get('member_name')
@@ -226,16 +361,17 @@ def records_tab(request):
         if due_date:
             records = records.filter(due_date=due_date)
 
-    paginator = Paginator(records, 5)  # 5 records per page
+    paginator = Paginator(records, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
     return render(request, 'records.html', {
         'current_tab': 'records',
         'form': form,
         'page_obj': page_obj
     })
 
-
+@librarian_required
 def add_borrowing(request):
     today = date.today()
     due_date = today + timedelta(days=7)
@@ -249,20 +385,17 @@ def add_borrowing(request):
                 messages.error(request, f"'{book.title}' is out of stock! Cannot borrow.")
                 return redirect('records_tab')
 
-            # Use transaction to ensure both actions happen together
             with transaction.atomic():
-                # Decrease available quantity
                 book.available_quantity -= 1
                 book.save()
 
-                # Save borrowing record
                 borrowing = form.save(commit=False)
                 borrowing.borrowed_on = today
                 borrowing.due_date = due_date
                 borrowing.save()
 
             messages.success(request, "Borrowing record added successfully!")
-            return redirect('records_tab')  # redirect after POST
+            return redirect('records_tab')
     else:
         form = BorrowingForm()
 
@@ -272,20 +405,36 @@ def add_borrowing(request):
         'today': today,
         'due_date': due_date
     })
-    
-    # Return
-  
+@login_required
 def return_book(request, borrowing_id):
-    borrowing = Borrowing.objects.get(id=borrowing_id)
-    book = borrowing.book
-    book.available_quantity += 1
-    book.save()
-    borrowing.delete()
-    messages.success(request, f"Book '{book.title}' returned successfully!")
-    return redirect('records_tab')
+    borrowing = get_object_or_404(Borrowing, id=borrowing_id)
+    
+    # Example: check if user is librarian
+    is_librarian = getattr(request.user, 'is_librarian', False)  # or request.user.is_staff
 
+    if is_librarian or borrowing.member.user == request.user:
+        book = borrowing.book
+        book.available_quantity += 1
+        book.save()
+
+        borrowing.returned = True
+        borrowing.returned_date = now()
+        borrowing.save()
+
+        messages.success(request, f"Book '{book.title}' returned successfully!")
+        # Redirect back to the table page so it updates
+        if is_librarian:
+            return redirect('records_tab')        # ← updated redirect
+        else:
+            return redirect('member_dashboard')
+
+    else:
+        messages.error(request, "You do not have permission to return this book!")
+        return redirect('member_dashboard')
+    
+@librarian_required
 def returns_tab(request):
-    records = Borrowing.objects.all().order_by('-borrowed_on')
+    records = Borrowing.objects.filter(returned= False).order_by('-borrowed_on')
     paginator = Paginator(records, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -294,3 +443,30 @@ def returns_tab(request):
         'page_obj': page_obj,
         'current_tab': 'returns'
     })
+
+# Member-specific views
+@member_required
+def member_dashboard(request):
+    try:
+        reader = Reader.objects.get(user=request.user)
+
+        # Borrowings for this member only
+        all_borrowings = Borrowing.objects.filter(member=reader).select_related('book').order_by('-borrowed_on')
+
+        # Separate returned and not returned
+        not_returned = all_borrowings.filter(returned=False)
+        returned = all_borrowings.filter(returned=True)
+
+        overdue_books = not_returned.filter(due_date__lt=now()).count()
+
+        return render(request, 'member_dashboard.html', {
+            'reader': reader,
+            'not_returned': not_returned,
+            'returned': returned,
+            'overdue_books': overdue_books,
+            'current_tab': 'member_dashboard'
+        })
+
+    except Reader.DoesNotExist:
+        messages.error(request, "Reader profile not found for your account.")
+        return redirect('home')

@@ -7,74 +7,117 @@
     <title>Library Information Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <style> 
-        .jumbotron{
-            padding: 2rem 1rem;
-            margin-bottom: 2rem;
-            background-color: #eceff1;
-            border-radius: 0.3rem;
-        }
+      .jumbotron {
+        padding: 2rem 1rem;
+        margin-bottom: 2rem;
+        background-color: #eceff1;
+        border-radius: 0.3rem;
+      }
+
+      .navbar-nav .nav-link.active {
+        font-weight: bold;
+        text-decoration: underline;
+        color: #fff;
+      }
+
+      .navbar-nav .nav-link {
+        color: white;
+        margin-right: 10px;
+      }
     </style>
   </head>
   <body>
-    <nav class="navbar bg-body-tertiary">
-      <div class="container-fluid justify-content-center align-items-center" style="background-color: #0000FF">
-        <span class="navbar-brand mb-0 h1 text-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg" style="background-color: #0000FF;">
+      <div class="container-fluid">
+        <a class="navbar-brand text-light" href="#">
           <img src="{% static 'lims_app/logo1.jpg' %}" alt="logo" height="45" style="margin-right: 10px">
           Library
-        </span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+
+            {% if user.is_authenticated %}
+
+              {% if user.is_admin %}
+                <!-- Admin Navigation -->
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'home' %}active{% endif %}" href="{% url 'home' %}">HOME</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'readers' %}active{% endif %}" href="{% url 'readers_tab' %}">READERS</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'books' %}active{% endif %}" href="{% url 'book_list' %}">BOOKS</a>
+                </li>
+
+              {% elif user.is_librarian %}
+                <!-- Librarian Navigation -->
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'home' %}active{% endif %}" href="{% url 'home' %}">HOME</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'books' %}active{% endif %}" href="{% url 'book_list' %}">BOOKS</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'records' %}active{% endif %}" href="{% url 'records_tab' %}">Borrowing Records</a>
+                </li>
+
+              {% elif user.is_member %}
+                <!-- Member Navigation -->
+                <li class="nav-item">
+                   <a class="nav-link {% if current_tab == 'home' %}active{% endif %}" href="{% url 'home' %}">HOME</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if current_tab == 'member_dashboard' %}active{% endif %}" href="{% url 'member_dashboard' %}">
+                    My Dashboard
+                    {% with reader=user.reader %}
+                      {% with borrowings=reader.borrowing_set.all %}
+                        {% with active_count=borrowings.count %}
+                          {% if active_count > 0 %}
+                            <span class="badge bg-warning text-dark">{{ active_count }}</span>
+                          {% endif %}
+                        {% endwith %}
+                      {% endwith %}
+                    {% endwith %}
+                  </a>
+                </li>
+
+              {% endif %}
+
+              <!-- Welcome and Logout -->
+              <li class="nav-item">
+                <span class="navbar-text text-light mx-3">Welcome, {{ user.username }}</span>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link text-light" href="{% url 'logout' %}">Logout</a>
+              </li>
+
+            {% else %}
+              <!-- Guest Links -->
+              <li class="nav-item">
+                <a class="nav-link text-light" href="{% url 'login' %}">Login</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link text-light" href="{% url 'register' %}">Register</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
     </nav>
-        <div class="container-fluid d-flex justify-content-center align-items-center">
-            <ul class="nav nav-tabs">
-            <li class="nav-item">
-                {% if current_tab == 'home' %}
-                    <a class="nav-link active" aria-current="page"  href="/home">HOME</a>
-                {% else %}
-                    <a class="nav-link" aria-current="page"  href="/home">HOME</a>
-                {% endif %}
-            </li>
-            <li class="nav-item">
-                {% if current_tab == 'readers' %}
-                    <a class="nav-link active" aria-current="page"  href="/readers">READERS</a>
-                {% else %}
-                    <a class="nav-link" aria-current="page"  href="/readers">READERS</a>
-                {% endif %} 
-            </li>
 
-            <li class="nav-item">
-                <a class="nav-link {% if current_tab == 'books' %}active{% endif %}" 
-                href="{% url 'book_list' %}">
-                    BOOKS
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if current_tab == 'records' %}active{% endif %}" 
-                href="{% url 'records_tab' %}">
-                MY BAG
-                </a>
-            </li>
+    <!-- Main Page Content -->
+    <div class="container mt-4">
+      {% block main_content %}
+      {% endblock %}
+    </div>
 
-
-
-            
-            <li class="nav-item">
-                {% if current_tab == 'returns' %}
-                    <a class="nav-link active" aria-current="page"  href="/returns">RETURNS</a>
-                {% else %}
-                    <a class="nav-link" aria-current="page"  href="/returns">RETURNS</a>
-                {% endif %} 
-            </li>
-            </ul>
-        </div>
-         </nav>
-         {% block main_content%}
-         {% endblock %}
-<!-- Bootstrap 5 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Bootstrap 5 JS Bundle (includes Popper) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

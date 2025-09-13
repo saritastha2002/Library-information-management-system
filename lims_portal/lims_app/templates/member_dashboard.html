@@ -1,0 +1,43 @@
+{% extends 'index.html' %}
+{% block main_content %}
+<div class="container mt-4">
+  <h3 class="mb-3">📘 Welcome, {{ reader.reader_name }}</h3>
+
+  <div class="mb-4">
+    <strong>Overdue Books:</strong> {{ overdue_books }}
+  </div>
+
+  <h5>📖 Currently Borrowed Books</h5>
+  {% if not_returned %}
+    <ul class="list-group mb-4">
+      {% for record in not_returned %}
+        <li class="list-group-item">
+          <strong>{{ record.book.title }}</strong> <br>
+          Borrowed on: {{ record.borrowed_on }}<br>
+          Due date: {{ record.due_date }}
+          {% if record.is_overdue %}
+            <span class="badge bg-danger ms-2">Overdue</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">You have no currently borrowed books.</p>
+  {% endif %}
+
+  <h5>📦 Returned Books</h5>
+  {% if returned %}
+    <ul class="list-group">
+      {% for record in returned %}
+        <li class="list-group-item">
+          <strong>{{ record.book.title }}</strong> <br>
+          Borrowed on: {{ record.borrowed_on }}<br>
+          Returned on: {{ record.returned_date }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No books have been returned yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

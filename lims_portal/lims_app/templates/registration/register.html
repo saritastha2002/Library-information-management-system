@@ -1,0 +1,91 @@
+{% extends 'index.html' %}
+
+{% block main_content %}
+<div class="container mt-5" style="max-width: 600px;">
+  <h2 class="mb-4">Register</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="first_name" class="form-label">First Name</label>
+      <input type="text" name="first_name" class="form-control">
+    </div>
+
+    <div class="mb-3">
+      <label for="last_name" class="form-label">Last Name</label>
+      <input type="text" name="last_name" class="form-control">
+    </div>
+
+
+    <div class="mb-3">
+      <label for="contact" class="form-label">Contact</label>
+      <input type="text" name="contact" class="form-control" placeholder="e.g., 98XXXXXXXX">
+    </div>
+
+    <div class="mb-3">
+      <label for="address" class="form-label">Address</label>
+      <input type="text" name="address" class="form-control" placeholder="e.g., Kathmandu">
+    </div>
+
+    <!-- Reference ID for members only -->
+    <div class="mb-3" id="reference_id_field">
+      <label for="reference_id" class="form-label">Reference ID</label>
+      <input type="text" name="reference_id" class="form-control" placeholder="E.g., R001">
+    </div>
+
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="password_confirm" class="form-label">Confirm Password</label>
+      <input type="password" name="password_confirm" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="role" class="form-label">Register As</label>
+      <select name="role" class="form-select" id="role_select">
+        <option value="member">Member</option>
+        <option value="librarian">Librarian</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Register</button>
+  </form>
+</div>
+
+<script>
+const roleSelect = document.getElementById('role_select');
+const refField = document.getElementById('reference_id_field');
+
+function toggleReferenceField() {
+    if (roleSelect.value === 'librarian') {
+        refField.style.display = 'none';
+    } else {
+        refField.style.display = 'block';
+    }
+}
+
+// Initial check
+toggleReferenceField();
+
+// Listen for changes
+roleSelect.addEventListener('change', toggleReferenceField);
+</script>
+{% endblock %}
